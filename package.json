@@ -1,7 +1,8 @@
 {
-  "name": "youtube",
+  "name": "youtubeclone",
   "version": "1.0.0",
   "description": "backend for youtube",
+  "type": "module",
   "keywords": [
     "javascript",
     "backend",
@@ -9,9 +10,12 @@
   ],
   "license": "ISC",
   "author": "Nitesh choudhary",
-  "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon src/index.js"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10",
+    "prettier": "^3.5.3"
   }
 }
