@@ -4,13 +4,32 @@
 
 import dotenv from "dotenv"
 import connectDB from "./db/index.js";
+import { app } from "./app.js";
 
 dotenv.config({
     path: './.env'
 })
-connectDB()
 
-///////// 1. approach
+//Approach 1: Chained .then().catch() Promise Style
+//here we import the connect db
+const database= connectDB()
+database.then(()=>{
+    app.listen(process.env.PORT || 8000,()=>{
+          console.log(`server is running at ${process.env.PORT}`)
+    })
+    app.on("error",(error)=>{
+        console.log(`getting error`,error);
+        throw error
+    })
+})
+.catch((error)=>{
+    console.log("Mongodb connection failed !! ",error)
+    process.exit(1)
+})
+//this is a asynchronous mathod in which it returns a promise
+
+
+/////////Approach 2. IIFE (Immediately Invoked Function Expression) with async/await
 //this is a IFEE function that given output instant and run in speed
 //(()=>{})
 //this is the first approch to connect with database 
@@ -19,7 +38,7 @@ connectDB()
 // const app = express();
 
 // ;( async()=>{
-//     try{p
+//     try{
 //           await mongoose.connect(`${process.env.MONGODB_URI}/${DB_NAME}`)
 //           app.on("error",(error)=>{
 //             console.log("ERROR",error);
