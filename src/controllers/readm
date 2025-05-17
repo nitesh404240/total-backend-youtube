@@ -1,0 +1,12 @@
+Controllers Folder Structure
+The controllers folder usually contains multiple files, each responsible for handling different parts of your application. For example:
+
+controllers/userController.js — Handles user-related actions (e.g., registration, login, profile update).
+
+controllers/productController.js — Handles product-related actions (e.g., creating a product, listing products).
+
+controllers/orderController.js — Handles order-related actions (e.g., placing an order, viewing orders).
+
+controllers/authController.js — Handles authentication logic (e.g., login, logout).
+
+So, the controllers/userController.js file would not be the only file. You would need other controllers depending on the features of your app.

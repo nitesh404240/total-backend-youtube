@@ -1,0 +1,16 @@
+/app
+  /controllers
+    userController.js        # User-related logic (e.g., registration, login)
+    productController.js     # Product-related logic (e.g., adding, listing products)
+    orderController.js       # Order-related logic (e.g., placing an order)
+    authController.js        # Authentication-related logic
+  /routes
+    userRoutes.js            # Defines routes for user-related operations
+    productRoutes.js         # Defines routes for product-related operations
+    orderRoutes.js           # Defines routes for order-related operations
+    authRoutes.js            # Defines routes for authentication
+  /models
+    userModel.js             # Defines the structure of user data (e.g., MongoDB schema)
+    productModel.js          # Defines the structure of product data
+    orderModel.js            # Defines the structure of order data
+  server.js                  # Main entry point for the Express app

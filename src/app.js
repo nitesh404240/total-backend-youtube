@@ -13,10 +13,10 @@ const app = express();
  * 
  * `credentials: true` allows cookies to be sent in cross-origin requests.
  */
-app.use(cors({
-  origin: process.env.CORS_ORIGIN,
-  credentials: true
-}));
+// app.use(cors({
+//   origin: process.env.CORS_ORIGIN,
+//   credentials: true
+// }));
 
 /**
  * Middleware to parse incoming JSON requests.
@@ -24,9 +24,9 @@ app.use(cors({
  * This allows the server to handle requests with a JSON body.
  * The `limit` option restricts the size of the JSON payload to prevent DoS attacks.
  */
-app.use(express.json({
-  limit: "16kb"
-}));
+// app.use(express.json({
+//   limit: "16kb"
+// }));
 
 /**
  * Middleware to parse URL-encoded form data.
@@ -40,10 +40,10 @@ app.use(express.json({
  *   password=Kartar@1234 ➝ password=Kartar%401234
  *   (URL-encoded data like spaces become %20, @ becomes %40, etc.)
  */
-app.use(express.urlencoded({
-  extended: true,
-  limit: "16kb"
-}));
+// app.use(express.urlencoded({
+//   extended: true,
+//   limit: "16kb"
+// }));
 
 /**
  * Serve static files from the "public" folder.
@@ -54,7 +54,7 @@ app.use(express.urlencoded({
  * Example:
  *   public/logo.png ➝ http://yourdomain.com/logo.png
  */
-app.use(express.static("public"));
+// app.use(express.static("public"));
 
 /**
  * Middleware to parse cookies in incoming requests.
@@ -62,6 +62,31 @@ app.use(express.static("public"));
  * This enables reading cookies sent by the client in requests.
  * Useful for managing sessions, tokens, and authentication data.
  */
+app.use(cors({origin: process.env.CORS_ORIGIN, credentials: true}));
+app.use(express.json({ limit: "16kb"}));
+app.use(express.urlencoded({ extended: true,limit: "16kb"}));
+app.use(express.static("public"));
 app.use(cookieParser());
+
+//routes import now 
+
+import userRouter from "./routes/user_routes.js"
+
+//routes declaration
+//phle ham routes ko isme hi declrae kar de dete the ek hi file me 
+//but abbhi files separate ho gyi hai to hame app.use ka use karna hoga
+
+//this is the middleware 
+//whene a person click on "/users"then controll goes to userRouter and i goes to 
+// user_router file then it selcts on whcih page or route it wants to go
+//app.use(route name , route or file to activate)
+
+
+//at stating when application starts the api/v1/users the userRouter will get activate 
+//then it whill choose the router path and see what should happen on that route
+//after tha it sees post and get the function registeruser and got to ehte ifle registerUser an d
+//on highorder function a function runs that gives the response message : ok 
+app.use("/api/v1/users",userRouter)
+//http://localhost:8000/api/v1/users/register
 
 export { app };

@@ -1,0 +1,171 @@
+Objective
+We’ll define routes in one file, without using asynchandler. We'll handle asynchronous operations (like database interactions) directly within the routes, and manually catch errors using try-catch.
+
+Example
+Let’s create a user registration route without using asynchandler. In this example, we’ll manually handle async code and error handling.
+
+File Structure:
+markdown
+Copy
+Edit
+- controllers/
+    - userController.js
+- routes/
+    - userRoutes.js
+- server.js
+1. controllers/userController.js (Contains Business Logic)
+This file will contain the function that performs the registration logic (e.g., inserting the user into a database).
+
+js
+Copy
+Edit
+// controllers/userController.js
+
+const registerUser = async (req, res, next) => {
+  try {
+    // Simulate async operation like DB call
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      throw new Error("Missing required fields");
+    }
+
+    // Simulate successful user registration
+    const newUser = { name, email }; // Simulate user data
+
+    // Respond with the success message
+    res.status(201).json({
+      message: "User registered successfully",
+      user: newUser,
+    });
+  } catch (error) {
+    // Pass the error to the next middleware
+    next(error); 
+  }
+};
+
+export { registerUser };
+2. routes/userRoutes.js (Handles Route Definitions)
+This file will define the routes, but without using asynchandler. We’ll use try-catch directly in the route handler.
+
+js
+Copy
+Edit
+// routes/userRoutes.js
+
+import { Router } from "express";
+import { registerUser } from "../controllers/userController.js";
+
+const router = Router();
+
+// POST request to /register for user registration
+router.post("/register", async (req, res, next) => {
+  try {
+    await registerUser(req, res, next); // Call the registerUser function directly
+  } catch (error) {
+    next(error); // Pass any errors to the global error handler
+  }
+});
+
+export default router;
+Here, we’re calling registerUser and handling errors using try-catch in the route.
+
+If any error occurs in registerUser, we catch it and pass it to the next middleware (next(error)).
+
+3. server.js (Entry Point of the Application)
+Here we set up the Express app, import the routes, and add a global error handler.
+
+js
+Copy
+Edit
+// server.js
+
+import express from "express";
+import userRoutes from "./routes/userRoutes.js";
+
+const app = express();
+
+// Middleware to parse JSON request bodies
+app.use(express.json());
+
+// Use the userRoutes for all `/users` routes
+app.use("/users", userRoutes);
+
+// Global error handler for any unhandled errors
+app.use((err, req, res, next) => {
+  console.error(err.message); // Log the error for debugging
+  res.status(500).json({ message: err.message || "Internal Server Error" });
+});
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+The global error handler is set up at the end of all middleware, so it will catch any errors passed to next() from your routes.
+
+How It Works:
+User Request:
+
+When a user sends a POST request to /users/register, the handler in userRoutes.js gets triggered.
+
+Business Logic:
+
+The route calls registerUser from userController.js which contains the business logic (e.g., checking if the request body contains the required fields).
+
+Error Handling:
+
+If there’s any error (like missing fields or an exception from the async code), we catch the error and pass it to the global error handler via next(error).
+
+Global Error Handler:
+
+Any error that reaches next(error) will be caught by the error handler in server.js, and a generic 500 response will be returned to the client.
+
+Example Request and Response:
+Request:
+bash
+Copy
+Edit
+POST http://localhost:5000/users/register
+Content-Type: application/json
+
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "password123"
+}
+Response (Success):
+json
+Copy
+Edit
+{
+  "message": "User registered successfully",
+  "user": {
+    "name": "John Doe",
+    "email": "john@example.com"
+  }
+}
+Request with Missing Fields:
+bash
+Copy
+Edit
+POST http://localhost:5000/users/register
+Content-Type: application/json
+
+{
+  "name": "John Doe"
+}
+Response (Error):
+json
+Copy
+Edit
+{
+  "message": "Missing required fields"
+}
+✅ TL;DR:
+Without asynchandler: We manually wrap async logic in try-catch blocks and handle errors with next(error).
+
+Error Handling: The errors are passed to a global error handler in server.js, which returns a consistent response for errors.
+
+This approach is totally fine, but it does involve more manual error handling. If your app grows, using something like asynchandler or express-async-handler can help clean up the code and reduce boilerplate.
+
+Let me know if you need any further explanations or enhancements!
