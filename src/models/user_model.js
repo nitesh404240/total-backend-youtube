@@ -52,7 +52,7 @@ const userSchema = new mongoose.Schema(
             required :[true,"password is required"]
         },
         refreshTokens : {
-            type : string
+            type : String
         },
 
 }, {timestamps:true})
@@ -71,7 +71,7 @@ userSchema.pre("save",async function(next){
     if(!this.isModified("password")){
         return next();
     }
-       this.password = bcrypt.hash(this.password,10)
+       this.password =await bcrypt.hash(this.password,10)
         next()
 })
 //in this below we can add our modifiesd or user based methods 

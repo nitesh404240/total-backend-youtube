@@ -1,13 +1,25 @@
 import { Router } from "express";
+import {upload} from "../middlewares/multer_middleware.js"
 import { registerUser } from "../controllers/user_controller.js";
 const router = Router();
 
-router.route("/register").post(registerUser)
-// router.route("/register").post((req,res)=>{
-//     res.status(200).json({
-//         messsage : "ok"
-//     })
-// })
+//this is the middleware just before the register user post request 
+//that check the field avatar and image 
+//this is a check up middlware that locally save the files in public/temp folder in which we can save it 
+router.route("/register").post(
+upload.fields([
+    {
+        //// “When the /register route receives a request with a file upload,
+        //  use multer to extract files from the avatar and coverImage
+        //  fields and store them in public/temp/.”
+        name : "avatar",
+        maxCount : 1
+    },
+    {
+        name : "coverImage",
+        maxcount : 1
+    }
+]),registerUser)
 
 
 export default router

@@ -9,4 +9,25 @@ controllers/orderController.js — Handles order-related actions (e.g., placing 
 
 controllers/authController.js — Handles authentication logic (e.g., login, logout).
 
-So, the controllers/userController.js file would not be the only file. You would need other controllers depending on the features of your app.
+So, the controllers/userController.js file would not be the only file. You would need other controllers depending on the features of your app.\
+
+
+
+
+//////////////http status codes
+
+//| Code | Usage Example                        |
+// | ---- | ------------------------------------ |
+// | 200  | Successful GET/POST request          |
+// | 201  | New user/resource created            |
+// | 400  | Missing form field or bad JSON       |
+// | 401  | Not logged in or token missing       |
+// | 403  | Trying to access someone else’s data |
+// | 404  | Page or API route not found          |
+// | 409  | User already exists                  |
+// | 500  | Server crash, DB error, etc.         |
+
+
+//what we passes in this this will shown up in postman in
+
+//this is production based knowlendge

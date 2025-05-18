@@ -12,18 +12,25 @@ import multer from "multer";
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, './public/temp')
+    //destination: Sets the folder where files will be stored temporarily — here it’s ./public/temp
     //this is the destination that will be used in callback
   },
   filename: function (req, file, cb) {
-    
+    //filename: Uses the original file name for saving the file
     cb(null, file.originalname)
     //callback
   }
 })
 //the local path and original file name will be returned in callback function
-const upload = multer(
+export const upload = multer(
     { 
-        storage
+        storage : storage
      }
 )
-
+//i used this in user_routes
+// router.post("/register", upload.fields([
+//   { name: "avatar", maxCount: 1 },
+//   { name: "coverImage", maxCount: 1 }
+// ]), registerUser);
+// This line tells Express:
+// “When the /register route receives a request with a file upload, use multer to extract files from the avatar and coverImage fields and store them in public/temp/.”
