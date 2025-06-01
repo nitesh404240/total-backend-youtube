@@ -83,10 +83,11 @@ import userRouter from "./routes/user_routes.js"
 
 
 //at stating when application starts the api/v1/users the userRouter will get activate 
-//then it whill choose the router path and see what should happen on that route
-//after tha it sees post and get the function registeruser and got to ehte ifle registerUser an d
+//then it will choose the router path and see what should happen on that route
+//after that it sees post and get the function registeruser and got to ehte ifle registerUser an d
 //on highorder function a function runs that gives the response message : ok 
 app.use("/api/v1/users",userRouter)
+
 //http://localhost:8000/api/v1/users/register
 
 export { app };

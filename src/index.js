@@ -13,8 +13,11 @@ dotenv.config({
 //Approach 1: Chained .then().catch() Promise Style
 //here we import the connect db
 const database= connectDB()
+
 database.then(()=>{
-    app.listen(process.env.PORT || 8001,()=>{
+
+
+    app.listen(process.env.PORT || 8002,()=>{
           console.log(`server is running at ${process.env.PORT}`)
     })
     app.on("error",(error)=>{

@@ -18,6 +18,12 @@ Cloudinary.config({
 // It returns the Cloudinary response if successful, or null if failed
 const uploadOncloudinary = async (localFilePath) => {
   try {
+    //this localfilepath will come form user_routes which will pushed in to the funciton uploadOncloudinary
+    //it will be its avatar and coverimage
+
+    //////=========should check the fetching of details in line no. 79 and uploading it into cloudinary field in 97(locakfilepath get) ================/////
+
+
     // If no file path is provided, return early
     if (!localFilePath) return null;
 
@@ -26,10 +32,16 @@ const uploadOncloudinary = async (localFilePath) => {
     const response = await Cloudinary.uploader.upload(localFilePath, {
       resource_type: "auto"
     });
+ ////=======  avatarLocalPath = 'public/temp/avatar2.jpg';
+//this is what it gets form user_controller and avatar file return to it a local path on server 
+
 
     // If successful, log and return the Cloudinary upload response
-    console.log("✅ File has been uploaded successfully", response, response.url);
-    return response;
+    //console.log("✅ File has been uploaded successfully", response);
+    //  console.log("✅ File has been uploaded successfully");
+    // console.log("✅ File name is :", response.original_filename);
+    // console.log("✅ File url is : ",  response.url);
+     return response;
 
   } catch (error) {
     // ⚠️ This block runs if the Cloudinary upload fails due to:

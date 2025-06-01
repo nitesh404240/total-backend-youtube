@@ -67,6 +67,7 @@ const userSchema = new mongoose.Schema(
 
 //this is a part of middleware it will run before the data going to save
 //hashing the password
+//this middlware hashing the passoword in the database 
 userSchema.pre("save",async function(next){
     if(!this.isModified("password")){
         return next();
@@ -91,14 +92,14 @@ userSchema.methods.generateAccessToken = async function() {
       return jwt.sign({
         _id : this._id,
         email : this.email,
-        username : this.username,            //this is my payload  to identify and generate a rando code
+        username : this.username,            //this is my payload  to identify and generate a random code
         fullname : this.fullname
       },
        process.env.ACCESS_TOKEN_SECRET,   //this will be my secret key that will help me to decode the token  //the secret is only known to the server 
       {
-        expiresIn:process.env.ACCESS_TOKEN_EXPIRY   //this will be the expiry 
+        expiresIn : process.env.ACCESS_TOKEN_EXPIRY   //this will be the expiry 
       }
-    )
+    );
     //it will take my data to generate random code that can be exncrypt and takes the secr
 }
 // Define a method on the user schema to generate a refresh token
@@ -109,15 +110,6 @@ userSchema.methods.generateRefreshToken = async function () {
     {
       // Add the user's unique MongoDB ID to the token payload
       _id: this._id,
-
-      // Add the user's email
-      email: this.email,
-
-      // Add the user's username
-      username: this.username,
-
-      // Add the user's full name
-      fullname: this.fullname
     },
 
     // Use a secret key stored in your .env file to sign the token
@@ -127,7 +119,7 @@ userSchema.methods.generateRefreshToken = async function () {
       // Set how long the token is valid for (e.g., '7d' or '30m')
       expiresIn: process.env.REFRESH_TOKEN_EXPIRY
     }
-  );
+  )
 };
 
 
