@@ -67,7 +67,7 @@ const userSchema = new mongoose.Schema(
 
 //this is a part of middleware it will run before the data going to save
 //hashing the password
-//this middlware hashing the passoword in the database 
+//this middlware hashing the password in the database 
 userSchema.pre("save",async function(next){
     if(!this.isModified("password")){
         return next();

@@ -77,7 +77,7 @@ import userRouter from "./routes/user_routes.js"
 //but abbhi files separate ho gyi hai to hame app.use ka use karna hoga
 
 //this is the middleware 
-//whene a person click on "/users"then controll goes to userRouter and i goes to 
+//when a person click on "/users" then control goes to userRouter and i goes to 
 // user_router file then it selcts on whcih page or route it wants to go
 //app.use(route name , route or file to activate)
 

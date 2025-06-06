@@ -1,39 +1,15 @@
-//we can use this registeruser directly without using the async handler 
-//we can directly define this but this will lead to additional field 
+
 import { asynchandler } from "../utils/asynchandler.js";
 import {ApiError} from "../utils/ApiError.js"
 import { User } from "../models/user_model.js"
 import { uploadOncloudinary } from "../utils/cloudinary_service.js"
 import { APIResponse } from "../utils/APIresponse.js";
 import { verifyJWT } from "../middlewares/auth_middleware.js";
-import e from "express";
+
+import jwt from "jsonwebtoken"
 
 
-const generate_Access_And_Refresh_Tokens = async(userId)=>{
-    try{
-//userid = this id is that passed in userschema for generate access and refresh token
-//Finds the user document from the database by its _id.
-// user is now a Mongoose document (an instance of the User model).
 
-      const user = await User.findById(userId)
-      const accessToken =await user.generateAccessToken()
-      //here is the accesstoken gets generated and lifespan is 15min
-      const refreshToken =await user.generateRefreshToken()
-      //here is refress token generate and life span is 10 days
-      user.refreshToken = refreshToken
-      //Saves the refresh token inside the user document.
-///This helps you later verify if a refresh token being used is still valid.
-     await user.save({ validateBeforeSave : false })
-      //Saves the updated user document with the new refresh token.
-      //save the refreshtoken in database
-
-      //so now on this stage we wo;; return accesstoken and refreshtoken
-
-      return {accessToken, refreshToken}
-    }catch(error){
-           throw new ApiError(500,"Somthing wnet wrong while generating refresh and access token")
-    }
-}
 const registerUser = asynchandler( async (req,res)=>{
     //step by step progress
     //get the user detatils from frontend 
@@ -104,7 +80,7 @@ const registerUser = asynchandler( async (req,res)=>{
 //   ]
 // }
 //this below files ka access hame multer ne diya jab hamne userroutes me upload ka use kiya
-//jisme hamne name nad count use kiya
+//jisme hamne name and count use kiya
  const avatarLocalPath = req.files?.avatar[0]?.path;
  ///avatarLocalPath = 'public/temp/avatar2.jpg';
 
@@ -169,9 +145,9 @@ return res.status(201).json(
 
 //this is only for the registration of the user 
 })
-//==========2=============
+
 const loginUser = asynchandler(async(req,res)=>{
-   //take data from body which convid fron frontend 
+  //take data from body which convid fron frontend 
   //username or email
   //find the user in database
   //match the password
@@ -243,7 +219,32 @@ return res
     )
 )
 })   
-//now we will send cookies
+
+const generate_Access_And_Refresh_Tokens = async(userId)=>{
+    try{
+//userid = this id is that passed in userschema for generate access and refresh token
+//Finds the user document from the database by its _id.
+// user is now a Mongoose document (an instance of the User model).
+
+      const user = await User.findById(userId)
+      const accessToken =await user.generateAccessToken()
+      //here is the accesstoken gets generated and lifespan is 15min
+      const refreshToken =await user.generateRefreshToken()
+      //here is refress token generate and life span is 10 days
+      user.refreshToken = refreshToken
+      //Saves the refresh token inside the user document.
+///This helps you later verify if a refresh token being used is still valid.
+     await user.save({ validateBeforeSave : false })
+      //Saves the updated user document with the new refresh token.
+      //save the refreshtoken in database
+
+      //so now on this stage we wo;; return accesstoken and refreshtoken
+
+      return {accessToken, refreshToken}
+    }catch(error){
+           throw new ApiError(500,"Somthing wnet wrong while generating refresh and access token")
+    }
+}
  const logoutUser = asynchandler(async (req, res) => {
          // CONST USER = AWAIT USER.FINDById(USER_ID) BUT WE CAN NOT DO THIS BCZ USER SHOULD NOT ENTER EMAIL OR REQUIRED DETAILS TO LOG OUT 
          // SO WE NEED MIDDLE WARE TO GIVE AS USER DETAILS FROM REQ THAT WHERE AUTHMIDDLEWARE COME IN HANDY
@@ -284,11 +285,66 @@ return res
 )
   })
   
-export {registerUser,loginUser,logoutUser}
+const RefreshAccessToken = asynchandler(async(req,res,next)=>{
 
-// const registerUser = asynchandler( async (req,res)=>{
-//     //here we can send muny much status like 200 for ok
-//     //  res.status(200).json({
-//     //  message : " Nitesh choudhary "
-//     // })
-//     })
+   try {  const incoming_refresh_token = req.body.refreshToken || req.cookies?.refreshToken;
+
+  if(!incoming_refresh_token){
+    throw new ApiError(400,"refresh token is not coming")
+  }
+  const decode_refresh_token = await jwt.verify(incoming_refresh_token,process.env.REFRESH_TOKEN_SECRET)
+
+  if(!decode_refresh_token){
+    throw new ApiError(401,"no token matching")
+  }
+
+  const user = await User.findById(decode_refresh_token?._id)
+
+  if(!user){
+    throw new ApiError(401,"invalid refresh token")
+  }
+
+  //we have already saves a encoded token in generate token function so we have to match it with already existed token 
+
+  if(incoming_refresh_token !== user?.refreshToken){
+    throw new ApiError(401,"refresh token is used or expired")
+  }
+// | Step                        | Encoded or Decoded?              |
+// | --------------------------- | -------------------------------- |
+// | `jwt.sign(...)`             | 🔒 **Encoded** JWT string        |
+// | Received in `req.cookies`   | 🔒 **Encoded** JWT string        |
+// | `jwt.verify(token, secret)` | 🔓 **Decoded** (Readable object) |
+
+//when i run login user i send the accesstoken and refresh token that i generated 
+// and send then to browser in cookies they are in encoded formate and i stored the refresh token 
+//in userschema in encoded formate 
+//so when i get the refresh token back from browser i have to match it with userchema already stored refresh token 
+//and after that i can give it access
+
+//if they are matchedd than we have to generates the new tokens
+
+const {accessToken,newrefreshToken} = await generate_Access_And_Refresh_Tokens(user._id)//generating new tokens 
+
+const options = {
+    httpOnly : true,
+    secure : true
+}
+
+return res
+.status(200)
+.cookie("accessToken",accessToken,options)
+.cookie("refreshToken",newrefreshToken,options)
+.json(
+    new APIResponse(
+        200,
+       {accessToken,refreshToken:newrefreshToken},
+       "access token refreshned"
+    )
+)
+}catch(error){
+    throw new ApiError(401,error?.message||"Invalid refresh token")
+}
+})
+
+export {registerUser,loginUser,logoutUser,RefreshAccessToken}
+
