@@ -115,3 +115,9 @@ story of token =================
 | 3. Server checks credentials         | If correct → generates tokens      | Still login UI         |
 | 4. Server sends tokens in cookies    | ✅ Access + Refresh sent            | Still login UI         |
 | 5. Frontend sees success → redirects | You are **navigated to dashboard** | ✅ Now you’re on app UI |
+
+
+refresh token = first fetch i from the reqested body or cookie then verify it with jwt if it verifies then 
+finding the id from refresh token decoded and then finding the user by the help of it 
+if user got found then match the incoming token with user database token if they match then 
+generates a new refresh and accesstoken and sent them to the browser in cookie 

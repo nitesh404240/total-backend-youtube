@@ -231,10 +231,10 @@ const generate_Access_And_Refresh_Tokens = async(userId)=>{
       //here is the accesstoken gets generated and lifespan is 15min
       const refreshToken =await user.generateRefreshToken()
       //here is refress token generate and life span is 10 days
-      user.refreshToken = refreshToken
+     user.refreshToken = refreshToken;
       //Saves the refresh token inside the user document.
 ///This helps you later verify if a refresh token being used is still valid.
-     await user.save({ validateBeforeSave : false })
+    await user.save({ validateBeforeSave: false });
       //Saves the updated user document with the new refresh token.
       //save the refreshtoken in database
 
@@ -287,8 +287,9 @@ const generate_Access_And_Refresh_Tokens = async(userId)=>{
   
 const RefreshAccessToken = asynchandler(async(req,res,next)=>{
 
-   try {  const incoming_refresh_token = req.body.refreshToken || req.cookies?.refreshToken;
-
+   try { 
+     const incoming_refresh_token = req.body.refreshToken || req.cookies?.refreshToken;
+///console.log("incoming_refresh_token",incoming_refresh_token)
   if(!incoming_refresh_token){
     throw new ApiError(400,"refresh token is not coming")
   }
@@ -305,39 +306,34 @@ const RefreshAccessToken = asynchandler(async(req,res,next)=>{
   }
 
   //we have already saves a encoded token in generate token function so we have to match it with already existed token 
+const user_refresh_exists_token = user.refreshToken
 
-  if(incoming_refresh_token !== user?.refreshToken){
-    throw new ApiError(401,"refresh token is used or expired")
+///console.log("user_refresh_exists_token :" ,user_refresh_exists_token)
+
+  if(incoming_refresh_token !== user_refresh_exists_token){
+    throw new ApiError(401,"refresh token is used or expired",userref,incoming_refresh_token)
   }
-// | Step                        | Encoded or Decoded?              |
-// | --------------------------- | -------------------------------- |
-// | `jwt.sign(...)`             | 🔒 **Encoded** JWT string        |
-// | Received in `req.cookies`   | 🔒 **Encoded** JWT string        |
-// | `jwt.verify(token, secret)` | 🔓 **Decoded** (Readable object) |
 
-//when i run login user i send the accesstoken and refresh token that i generated 
-// and send then to browser in cookies they are in encoded formate and i stored the refresh token 
-//in userschema in encoded formate 
-//so when i get the refresh token back from browser i have to match it with userchema already stored refresh token 
-//and after that i can give it access
 
-//if they are matchedd than we have to generates the new tokens
+const {accessToken,refreshToken} = await generate_Access_And_Refresh_Tokens(user._id)//generating new tokens 
+const new_refreshToken = refreshToken;
 
-const {accessToken,newrefreshToken} = await generate_Access_And_Refresh_Tokens(user._id)//generating new tokens 
+//console.log("new_refreshToken = ",new_refreshToken)
 
 const options = {
     httpOnly : true,
     secure : true
 }
 
+
 return res
 .status(200)
 .cookie("accessToken",accessToken,options)
-.cookie("refreshToken",newrefreshToken,options)
+.cookie("refreshToken",new_refreshToken,options)
 .json(
     new APIResponse(
         200,
-       {accessToken,refreshToken:newrefreshToken},
+       {accessToken , new_refreshToken ,user_refresh_exists_token ,incoming_refresh_token},
        "access token refreshned"
     )
 )
