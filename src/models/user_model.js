@@ -79,6 +79,7 @@ userSchema.pre("save",async function(next){
 //like ispasswordcorrect it will compare the user password with the hashed password
 //this.password will be mogodb password or presaved and password is the new passwor dto compre
 userSchema.methods.isPasswordCorrect = async function(password) {
+  // console.log(this.password)
     return await bcrypt.compare(password , this.password)
 }
 

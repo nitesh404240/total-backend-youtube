@@ -1,14 +1,35 @@
-
 import { asynchandler } from "../utils/asynchandler.js";
 import {ApiError} from "../utils/ApiError.js"
 import { User } from "../models/user_model.js"
 import { uploadOncloudinary } from "../utils/cloudinary_service.js"
 import { APIResponse } from "../utils/APIresponse.js";
-import { verifyJWT } from "../middlewares/auth_middleware.js";
-
 import jwt from "jsonwebtoken"
 
+const generate_Access_And_Refresh_Tokens = async(userId)=>{
+    try{
+//userid = this id is that passed in userschema for generate access and refresh token
+//Finds the user document from the database by its _id.
+// user is now a Mongoose document (an instance of the User model).
 
+      const user = await User.findById(userId)
+      const accessToken =await user.generateAccessToken()
+      //here is the accesstoken gets generated and lifespan is 15min
+      const refreshToken =await user.generateRefreshToken()
+      //here is refress token generate and life span is 10 days
+     user.refreshToken = refreshToken;
+      //Saves the refresh token inside the user document.
+///This helps you later verify if a refresh token being used is still valid.
+    await user.save({ validateBeforeSave: false });
+      //Saves the updated user document with the new refresh token.
+      //save the refreshtoken in database
+
+      //so now on this stage we wo;; return accesstoken and refreshtoken
+
+      return {accessToken, refreshToken}
+    }catch(error){
+           throw new ApiError(500,"Somthing wnet wrong while generating refresh and access token")
+    }
+}
 
 const registerUser = asynchandler( async (req,res)=>{
     //step by step progress
@@ -220,31 +241,6 @@ return res
 )
 })   
 
-const generate_Access_And_Refresh_Tokens = async(userId)=>{
-    try{
-//userid = this id is that passed in userschema for generate access and refresh token
-//Finds the user document from the database by its _id.
-// user is now a Mongoose document (an instance of the User model).
-
-      const user = await User.findById(userId)
-      const accessToken =await user.generateAccessToken()
-      //here is the accesstoken gets generated and lifespan is 15min
-      const refreshToken =await user.generateRefreshToken()
-      //here is refress token generate and life span is 10 days
-     user.refreshToken = refreshToken;
-      //Saves the refresh token inside the user document.
-///This helps you later verify if a refresh token being used is still valid.
-    await user.save({ validateBeforeSave: false });
-      //Saves the updated user document with the new refresh token.
-      //save the refreshtoken in database
-
-      //so now on this stage we wo;; return accesstoken and refreshtoken
-
-      return {accessToken, refreshToken}
-    }catch(error){
-           throw new ApiError(500,"Somthing wnet wrong while generating refresh and access token")
-    }
-}
  const logoutUser = asynchandler(async (req, res) => {
          // CONST USER = AWAIT USER.FINDById(USER_ID) BUT WE CAN NOT DO THIS BCZ USER SHOULD NOT ENTER EMAIL OR REQUIRED DETAILS TO LOG OUT 
          // SO WE NEED MIDDLE WARE TO GIVE AS USER DETAILS FROM REQ THAT WHERE AUTHMIDDLEWARE COME IN HANDY
@@ -342,5 +338,152 @@ return res
 }
 })
 
-export {registerUser,loginUser,logoutUser,RefreshAccessToken}
+const changePassword = asynchandler(async(req,res,next)=>{
+
+    const {password,new_password,confirm_password} = req.body;
+
+
+    if(!(new_password === confirm_password)){
+        throw new ApiError(404,"password is not confirmed")
+    }
+    console.log("password  ; ", password)
+
+    console.log("new_password : ",new_password)
+    
+     if(password == new_password){
+        throw new ApiError(404,"password must not be same")
+     }
+
+    const accessToken = req.cookies?.accessToken
+  
+    if(!accessToken){
+        throw new ApiError(400,"no access token")
+    }
+    const decoded_user = await jwt.verify(accessToken,process.env.ACCESS_TOKEN_SECRET)
+
+    if(!decoded_user){
+        throw new ApiError(404,"no decoding")
+    }
+
+    const user = await User.findById(decoded_user?._id);
+    // console.log("user",user)
+     if(!user){
+        throw new ApiError(401,"user not found")
+     }
+
+     const ispasswordCorrect = await user.isPasswordCorrect(password)
+// console.log("user_password",user.password)
+    //  console.log("ispasswordcorrect",ispasswordCorrect)
+  if(!ispasswordCorrect){
+    throw new ApiError(404,"old password is not matching")
+  }
+
+    
+console.log("user_password_old : ",password)
+     user.password = new_password;
+console.log("user`s_new_password ; " ,new_password)
+    
+    await user.save({validateBeforeSave:false})
+
+     return res.status(200)
+     .json(new APIResponse(200,"password change successfully"))
+})
+
+const get_current_user = asynchandler(async(req,res,next)=>{
+  //we can find the current user by access token and out auth middleware in which passed doen the user in request
+ const user = req.user
+
+ const userr = await User.findById(user._id).select("-password -refreshToken -avatar -coverImage ")
+//agar user ko middleware yani requested body se nikalenge to password and refresh token field ko disable kar diya
+ return res
+ .status(200)
+ .json(new APIResponse(200,`current user is : ${userr}`))
+
+
+})
+
+const updateProfile = asynchandler(async(req,res,next)=>{
+
+  const { fullname,username,email,password} = req.body
+ if(!password){
+    throw new ApiError(404,"password is requiered to update")
+ }
+
+
+ if(!(fullname || username || email)){
+  throw new ApiError(404,"user fields are empty")
+ }
+  const user = req.user
+
+  //passowrd field ko add kiya hamne authentication me jisse hame passowrd verification kar sake other wise we can remove refreshtoken and password from it
+//console.log(email)
+//  console.log(password)
+//  console.log(user.password)
+  const isuserverified = await user.isPasswordCorrect(password)
+//console.log(isuserverified)
+  if(!isuserverified){
+    throw new ApiError(404,"password is incorrect")
+  }
+  if(fullname && fullname != user.fullname){
+      user.fullname = fullname
+  }
+   if(email && email != user.email){
+      user.email = email
+  }
+   if(username && username != user.username){
+      user.username = username
+  }
+
+  await user.save()
+
+  const userr = await User.findById(user._id).select("-password -refreshToken -avatar -coverImage ")
+
+  return res
+  .status(200)
+  .json(new APIResponse(200,"updation has been successfull",userr))
+
+})
+
+const update_user_avatar = asynchandler(async(req,res,next)=>{
+
+     const avatarLocalPath = req.files.avatar[0]?.path
+
+     if(!avatarLocalPath){
+      throw new ApiError(401,"no avatar file")
+     }
+     const avatar = await uploadOncloudinary(avatarLocalPath)
+     const avatar_secure_url = avatar.secure_url
+     //console.log(avatar.secure_url)
+
+    //  const user = req.user
+
+    //  if(!user){
+    //   throw new ApiError(404,"no user fetched")
+    //  }
+
+    //  await User.findByIdAndUpdate(
+    //   user._id,
+    //   {
+    //     $set: {
+    //        avatar : avatar_secure_url
+    //     }
+    //   }
+    // ) 
+
+    //  await user.save();
+
+     await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        $set: {
+           avatar : avatar_secure_url
+        }
+      },{
+        new : true
+      }
+    ) 
+
+     return res.status(200).json(new APIResponse(200,"avatar successfully updated",avatar_secure_url))
+})
+export {registerUser,loginUser,logoutUser,RefreshAccessToken,changePassword,get_current_user,updateProfile,update_user_avatar}
 
