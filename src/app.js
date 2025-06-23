@@ -71,7 +71,13 @@ app.use(cookieParser());
 //routes import now 
 
 import userRouter from "./routes/user_routes.js"
-
+import videoRouter from "./routes/videos_routes.js"
+import subcriptionRouter from "./routes/subcription_route.js"
+import playlistRouter from "./routes/playlist_route.js"
+import commentRouter from "./routes/comments_routes.js"
+import tweetRouter from "./routes/tweet_routes.js"
+import likeRouter from "./routes/like_routes.js"
+import dashboard from "./routes/dashboard_routes.js"
 //routes declaration
 //phle ham routes ko isme hi declrae kar de dete the ek hi file me 
 //but abbhi files separate ho gyi hai to hame app.use ka use karna hoga
@@ -87,7 +93,13 @@ import userRouter from "./routes/user_routes.js"
 //after that it sees post and get the function registeruser and got to ehte ifle registerUser an d
 //on highorder function a function runs that gives the response message : ok 
 app.use("/api/v1/users",userRouter)
-
+app.use("/api/v1/videos", videoRouter)
+app.use("/api/vl/subscription",subcriptionRouter)
+app.use("/api/vl/playlist",playlistRouter)
+app.use("/api/v1/comment",commentRouter)
+app.use("/api/v1/tweet",tweetRouter)
+app.use("/api/v1/like",likeRouter)
+app.use("/api/v1/dashboard",dashboard)
 //http://localhost:8000/api/v1/users/register
 
 export { app };

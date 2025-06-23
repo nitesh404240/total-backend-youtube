@@ -121,3 +121,83 @@ refresh token = first fetch i from the reqested body or cookie then verify it wi
 finding the id from refresh token decoded and then finding the user by the help of it 
 if user got found then match the incoming token with user database token if they match then 
 generates a new refresh and accesstoken and sent them to the browser in cookie 
+
+
+to find the user by the help of access token is =
+
+const get_user = async(req,res,next)=>{
+    
+     const acceessToken = req.cookies?.accessToken || req.header("authorization").replace("Beared","")
+
+    const decode_user = await JWT.verifies(accessToken,process.env.ACCESS_TOKEN_SECRET)
+
+    const user = await User.findbyid(decode_user?._id).select("-refreshToken -password")
+
+    req.user= user
+    next('
+    ')
+
+}
+
+
+
+
+const user = await User.aggregate([
+  {
+    $match: {
+      _id: new mongoose.Types.ObjectId(req.user._id),
+    },
+  },
+  {
+    $lookup: {
+      from: "videos", // MongoDB collection name
+      localField: "watchHistory",
+      foreignField: "_id",
+      as: "watch_history_videos",
+      pipeline: [
+        {
+          $lookup: {
+            from: "users",
+            localField: "owner",
+            foreignField: "_id",
+            as: "owners_details_of_videos",
+            pipeline: [
+              {
+                $project: {
+                  username: 1,
+                  email: 1,
+                  fullname: 1,
+                },
+              },
+            ],
+          },
+        },
+        {
+          // Flatten the owners_details_of_videos array into a single object
+          $addFields: {
+            owners_details_of_videos: {
+              $first: "$owners_details_of_videos",
+            },
+          },
+        },
+        {
+          // Optional: project only needed video fields
+          $project: {
+            title: 1,
+            duration: 1,
+            owner: 1,
+            owners_details_of_videos: 1,
+          },
+        },
+      ],
+    },
+  },
+  {
+    // Optional: Only return selected user fields
+    $project: {
+      email: 1,
+      fullname: 1,
+      watch_history_videos: 1,
+    },
+  },
+]);

@@ -4,10 +4,11 @@ const subcriptionSchema = new mongoose.Schema({
 
 subscriber :{
     type : mongoose.Schema.Types.ObjectId,  //one who is subcribing
+    //it will only storing the _id from the user 
     ref : "User"
 }
 ,
-channels : {
+channel : {
   type : mongoose.Schema.Types.ObjectId,  //one who is subcribers is subscribing
     ref : "User"
 }

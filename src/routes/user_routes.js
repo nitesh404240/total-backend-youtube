@@ -1,6 +1,6 @@
 import { Router } from "express";
 import {upload} from "../middlewares/multer_middleware.js"
-import { changePassword, get_current_user, RefreshAccessToken, registerUser,  update_user_avatar,  updateProfile } from "../controllers/user_controller.js";
+import { changePassword, get_current_user, get_user_subcription, RefreshAccessToken, registerUser,  update_user_avatar,  updateProfile, watchHistory } from "../controllers/user_controller.js";
 import { loginUser } from "../controllers/user_controller.js";
 import { logoutUser } from "../controllers/user_controller.js";
 import {verifyJWT} from "../middlewares/auth_middleware.js";
@@ -34,12 +34,16 @@ router.route("/login").post(loginUser)
 
  router.route("/get-current-user").post(verifyJWT,get_current_user)
 
- router.route("/update-profile").post(verifyJWT,updateProfile)
+ router.route("/update-profile").patch(verifyJWT,updateProfile)
 
- router.route("/update-avatar").post(upload.fields([
-    {name : "avatar",maxCount : 1}
- ]),verifyJWT,update_user_avatar)
+ router.route("/update-avatar").patch(
+    upload.fields([
+        {name : "avatar",maxCount : 1}])
+        ,verifyJWT , update_user_avatar)
 
+router.route("/c/:username").get(verifyJWT,get_user_subcription)
+
+router.route("/c/:username/watch-history").get(verifyJWT,watchHistory)
 
 export default router
 

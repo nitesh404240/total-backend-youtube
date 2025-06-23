@@ -72,7 +72,10 @@ userSchema.pre("save",async function(next){
     if(!this.isModified("password")){
         return next();
     }
+    //i can hash all elements in my user
        this.password =await bcrypt.hash(this.password,10)
+      // this.email =await bcrypt.hash(this.email,10)
+
         next()
 })
 //in this below we can add our modifiesd or user based methods 

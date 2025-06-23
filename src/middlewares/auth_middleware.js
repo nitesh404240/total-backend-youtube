@@ -15,7 +15,7 @@ export const verifyJWT = asynchandler(async(req,_,next)=>{
         throw new ApiError(400,"No access token")
      }
      
-     const decodeToken = jwt.verify(accessToken,process.env.ACCESS_TOKEN_SECRET)
+     const decodeToken =await jwt.verify(accessToken,process.env.ACCESS_TOKEN_SECRET)
      //we are not using await in generating the token so it get empty object isnted of a cookie 
      //jwt.verify(Promise {<pending>}, secret)  
      //accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...

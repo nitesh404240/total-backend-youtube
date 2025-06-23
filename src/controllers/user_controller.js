@@ -4,6 +4,8 @@ import { User } from "../models/user_model.js"
 import { uploadOncloudinary } from "../utils/cloudinary_service.js"
 import { APIResponse } from "../utils/APIresponse.js";
 import jwt from "jsonwebtoken"
+import mongoose from "mongoose";
+import { Schema } from "mongoose";
 
 const generate_Access_And_Refresh_Tokens = async(userId)=>{
     try{
@@ -137,6 +139,7 @@ if(!avatar){
     throw new ApiError(400,"avatar file is required")
 }
 //user is created here and pushed to database
+//when i pushed it it runs pre operator and save the password and other it only hashed pasword when we save the password but we can also hashed othre things also
   const user = await User.create({
         fullname,
         avatar: avatar.url,
@@ -410,7 +413,7 @@ const updateProfile = asynchandler(async(req,res,next)=>{
  }
 
 
- if(!(fullname || username || email)){
+ if(!(password || email)){
   throw new ApiError(404,"user fields are empty")
  }
   const user = req.user
@@ -485,5 +488,368 @@ const update_user_avatar = asynchandler(async(req,res,next)=>{
 
      return res.status(200).json(new APIResponse(200,"avatar successfully updated",avatar_secure_url))
 })
-export {registerUser,loginUser,logoutUser,RefreshAccessToken,changePassword,get_current_user,updateProfile,update_user_avatar}
 
+const get_user_subcription = asynchandler(async(req,res)=>{
+  
+  const {username} = req.params
+// console.log(username)
+
+// const user = await User.findOne({username})
+// console.log(user)
+
+  if(!username){
+    throw new ApiError(401,"no username recieves")
+  }
+
+const channel = await User.aggregate([
+    {
+      $match : {username : username}
+    },{
+      //joining all documents in subcription schema that contain user  object id in channel 
+      $lookup : {    
+        from : "subcriptions",
+        localField : "_id",
+        foreignField : "channel",
+        as : "user_subscribers"
+
+      }
+  
+      //when the someoone subscriber to someones's channel in which it contain the objectId in thier channel or in subscribe field in subcription shema 
+
+      //so when i use match that mean i am matchin username in user schema //a
+      //after that when i loopup the my local user object  _id with cforeing field of subcription that is channel that means 
+      // it shows that how many channels contain the same object id that username conatain so by caluclating this we can field how many subscriber nitesh 
+    },
+      //joining all documents in subcription schema that contain user  object id in channel 
+      {
+      $lookup : {
+        from : "subcriptions",
+        localField : "_id",
+        foreignField : "subscriber",
+        as : "to_user_subscribes"
+
+      }
+    },
+    {
+      $lookup: {
+            from: "users",
+            localField: "to_user_subscribes.channel", // channel is the person you subscribed to
+            foreignField: "_id",
+            as: "subscribedToUsers"
+}
+    },
+    {
+      $addFields : {
+        total_subscribers_of_this_channel : {
+          "$size" : "$user_subscribers"
+        },
+        total_subcribed_by_user: {
+          "$size" : "$to_user_subscribes"
+        },
+        IsSubscribed : {    
+          "$cond" : 
+          {
+            if : {"$in":[req.user?._id,"$user_subscribers.subscriber"]},
+            //they = "pop"
+            //this upper line shows that it takes the _id from already logged in user and when i click on pop profile where i see 
+            //total cubscriber of 'pop' and total channels that 'pop' subscribed and to find that i subcribed to "pop" or not 
+            //i will check my user id in "pop " subcriber list if i present then yes if not then no
+            then: true,
+            else : false //the user is already logged in so we can fetch its _id 
+          }
+        }
+      }
+    },
+    {
+      $project : {
+        usrename : 1,
+        email: 1,
+        fullname : 1,
+        total_subscribers_of_this_channel :1,
+        total_subcribed_by_user : 1,
+        IsSubscribed:1,
+       // subscribedToUsers,
+        avatar : 1,
+        coverImage:1
+      }
+    }
+  ])
+
+ // console.log(channel)
+return res
+.status(200)
+.json(
+  new APIResponse(200,channel[0],"channel fetched successfully")
+)
+})
+
+const watchHistory = asynchandler(async(req,res,next)=>{
+//console.log(req.user._id)
+
+ // const {username} = req.params
+
+  //req.user._id = "wbekfjwef5w4f6w46f46e8f46e46e4f6w8e4"
+
+  //this above line user store a string not a id to get full object id we need to implement new monogoose schema types objectId(user) this will create a new object id
+  const user = await User.aggregate([
+    {
+      //$match : { username : username}
+      $match : {_id : req.user._id}
+    },
+    {
+      $lookup : {
+        from : "videos", //we use videos instead of Video because our database stored as this
+        localField : "watchHistory",
+        //outwatch history will contain some object ids that of vedios from vedios schema 
+        foreignField : "_id",
+        //in this fist lookup there will be many ids append in watchhistory array to these will be from videos schema or object id of videos
+        as : "watch_history_of_user",
+        pipeline : [
+          //by the help of 1st lookup we create a join on vedioes in which we will takes all the document that contian the user id 
+          //in below lookup we will get the owner of those vedios by the help of joining with user schema 
+          //this is called nested pipeline and by the help of project we will only project the name ,email,and fullname 
+          {
+            $lookup : {
+              from : "users",  //collection name (must match actual MongoDB collection, typically lowercase plural)
+              //in vedios schema or document each vedio contain some owner ids in which to find the owner we need to make another lookup to user to find theri identity 
+              //the ids will store in owner field  
+              localField : "owner",
+              foreignField : "_id",  //collection name (must match actual MongoDB collection, typically lowercase plural)
+              as : "owners_details_of_videos",
+              //by the help of this we can find the owner of vedios that user saw 
+              pipeline:[
+                {
+                  $project : {
+                      username : 1,
+                      email : 1,
+                      fullname : 1
+                  }
+                },
+                
+              ]
+            }
+            
+          },{
+             $addFields : {
+               owners_details_of_videos :
+                           { $first : "$owners_details_of_videos"}
+             }
+             //by using the addfiels in owners_details_of_videos it gives array first field into object
+             //   owners_details_of_videos: [ { ... } ]  -> owners_details_of_videos: { ... }
+
+             
+
+            }//there is no need to project this becauase our schema already has thos field whihc will eventually attached to it
+            //{
+                //    //$project : {
+                //      title: 1,
+                //      thumbnail:1,
+                //      videoFile : 1,
+                //      description : 1,
+                //      views:1,
+                //      duration: 1,
+                //      owner: 1,
+                //      owners_details_of_videos: 1,
+                //   }}
+        ]
+      },
+    },{
+
+      //this project will help to only project email,fullname,usernamewatch_history (this will contain user_id,duration,time,owner(this include email,fullname,username))
+      $project : {
+        email: 1,
+      username : 1,
+      watch_history_of_user: 1
+      }
+    }
+  ])
+
+  return res
+  .status(200)
+  .json(new APIResponse(200,"watchhistory fetched successfully",user[0]))
+  //.json(new APIResponse(200,"watchhistory fetched successfully",user[0].watch_history_of_user))
+  //this above response is lighweight which directly gives watch history which includes vedios details like owner and other 
+  })
+
+//    {     //[{ _id ,watch_history_documents[{_id,title,owner,owners_of_vedios : [{username,email,fullname }]}] }]   ============outpu
+
+//   //this upper aggregate return us the output in ARRAY form ,so we need to assemble the data ,
+//             // this output will in array in owner field so we need to improve it for the front end because one array in owner
+//             //  field and another array for outside in which we concienved the vedioes from user 
+//             ////there will user details first when we user - > videos and in vedios there will be owner_of_videos -> user details
+// //            //for example there are 8 videos in my history in which each ontain theri owner details 
+// //////////////=======[     
+// //                       {_id , email , fullname ,                 ====this output when we dont using addfield in out pipeline
+// //                           watch_history_videos :  [
+// //                       {_id(id of vedios),duration,title ,owners_of_videos: [{email,fullname,username}] },
+// //                       {_id(Id of vedios),duration,title ,owners_of_videos: [{email,fullname,username}] },
+// //                       {_id(id of vedios),duration,title ,owners_of_videos: [{email,fullname,username}] },
+// //                       {_id(Id of vedios),duration,title ,owners_of_videos: [{email,fullname,username}] },
+// //                       {_id(id of vedios),duration,title ,owners_of_videos: [{email,fullname,username}] },
+// //                       {_id(Id of vedios),duration,title ,owners_of_videos: [{email,fullname,username}] },
+// //                       {_id(id of vedios),duration,title ,owners_of_videos: [{email,fullname,username}] },
+// //                       {_id(Id of vedios),duration,title ,owners_of_videos: [{email,fullname,username}] }
+// //                   ]}                     
+// //                   ]
+
+
+// //output when i am writing this new code which hase a heirarchy - > 
+// //                                    [{  user_details -> _id,fullname ,username,email ,
+// //                                      watch_history : [{this will contain vedioes information in which fields are 
+//     //                                                      _id,duration,time ,likes,comments, 
+//     //                                                                       owner_details : { this will dsiplay owner info without array becuse we
+//     //                                                                                use addfield which project only object not array by using first
+//     //                                                                                    email ,fullname,username             } 
+// //                                                },{ },{ },{ },{ }---------] }]
+// // [
+// //   {
+// //     _id: ObjectId("user_id_here"),
+// //     email: "nitesh@example.com",
+// //     fullname: "Nitesh Choudhary",
+// //     username: "nitesh404",
+// //     avatar: "avatar_url.jpg",
+
+// //     watch_history_videos: [
+// //       {
+// //         _id: ObjectId("video_id_1"),
+// //         title: "How to Learn MongoDB",
+// //         thumbnail: "thumbnail1.jpg",
+// //         videoFile: "video1.mp4",
+// //         description: "A complete guide to MongoDB aggregation.",
+// //         views: 1023,
+// //         duration: "08:15",
+// //         owner: ObjectId("owner_id_1"),
+
+// //         owners_details_of_videos: {
+// //           username: "techguru",
+// //           email: "techguru@example.com",
+// //           fullname: "Tech Guru"
+// //         }
+// //       }
+// //     ]
+// //   }
+// // ]
+
+// }
+export {
+         registerUser,
+         loginUser,
+         logoutUser,
+         RefreshAccessToken,
+         changePassword,
+         get_current_user,
+         updateProfile,
+         update_user_avatar,
+         watchHistory,
+         get_user_subcription
+      }
+
+
+//  {     //example===============
+// //   userchema :     [
+// //   { _id: ObjectId("u1"), username: "nitesh", fullname: "Nitesh Choudhary", email: "nitesh@example.com" },
+// //   { _id: ObjectId("u2"), username: "alice", fullname: "Alice A", email: "alice@example.com" },
+// //   { _id: ObjectId("u3"), username: "bob", fullname: "Bob B", email: "bob@example.com" }
+// // ]
+// //=======================subcriptions=================
+// // [
+// //   { _id: ObjectId("s1"), subscriber: ObjectId("u2"), channel: ObjectId("u1") }, // Alice → Nitesh
+// //   { _id: ObjectId("s2"), subscriber: ObjectId("u3"), channel: ObjectId("u1") }, // Bob → Nitesh
+// //   { _id: ObjectId("s3"), subscriber: ObjectId("u1"), channel: ObjectId("u2") }, // Nitesh → Alice
+// //   { _id: ObjectId("s4"), subscriber: ObjectId("u1"), channel: ObjectId("u3") }  // Nitesh → Bob
+// // ]
+
+
+// ///=========================output for aggregation pipeline===========================
+// // {
+// //   "_id": ObjectId("u1"),
+// //   "username": "nitesh",
+// //   "fullname": "Nitesh Choudhary",
+// //   "email": "nitesh@example.com",                       ==========this is for matching the username ================
+
+//  ///==============================================user_subcriber in which i join them _id to channel ===================================
+//  //here i only found 2 documents that conatiain nitesh object id in their channel (channel gives use the count that how many subscribed me)
+// //   "user_subscribers": [
+// //     {
+// //       "_id": ObjectId("s1"),
+// //       "subscriber": ObjectId("u2"),
+// //       "channel": ObjectId("u1")        ========================
+// //     },
+// //     {
+// //       "_id": ObjectId("s2"),
+// //       "subscriber": ObjectId("u3"),
+// //       "channel": ObjectId("u1")          ====================
+// //     }
+// //   ],
+  
+// //============================================ this is thir lookup which gives me the docuument that contain the channel the is subscriber it match with subscriber =========
+// //======================there ar total 2 channel that i subcribedd
+
+// //   "to_user_subscribes": [
+// //     {
+// //       "_id": ObjectId("s3"),
+// //       "subscriber": ObjectId("u1"),           ===================
+// //       "channel": ObjectId("u2")                   ==============
+// //     },
+// //     {
+// //       "_id": ObjectId("s4"),
+// //       "subscriber": ObjectId("u1"),
+// //       "channel": ObjectId("u3")
+// //     }
+// //   ],
+
+// //   "subscribedToUsers": [
+// //     {
+// //       "_id": ObjectId("u2"),
+// //       "username": "alice",
+// //       "fullname": "Alice A",
+// //       "email": "alice@example.com"
+// //     },
+// //     {
+// //       "_id": ObjectId("u3"),
+// //       "username": "bob",
+// //       "fullname": "Bob B",
+// //       "email": "bob@example.com"
+// //     }
+// //   ],
+// ///===========================================this is the counting or finding the size of the documents in that field=============================
+// //   "total_subscribers_of_this_channel": 2,
+// //   "total_user_to_other_channels": 2
+// // }
+
+
+// //=====================================this is second pipeline output ==========================================
+// // [{
+// //   _id: ObjectId("user_id_here"),
+// //   watch_history_videos: [
+// //     {                                          ////////this is document 1 for vedio field and it also contain owner 
+// //                                                         field that attached with vedio and also we wrote another pipeline for that 
+// //                                                       will join owner field with user and find all the necessary details of the owner
+// //                                                     like email ,fullname ,username
+// //       _id: ObjectId("video_id_1"),
+// //       title: "Video 1",
+// //       owner: ObjectId("owner_id_1"),
+// //       owners_of_videos: [                             //wen we used second pipeline 
+// //         {
+// //           username: "user1",
+// //           email: "u1@example.com",
+// //           fullname: "User One"
+// //         }
+// //       ]
+// //     },
+// //     {
+// //       _id: ObjectId("video_id_2"),                     //fisrt pipe line output that gives vedio schema (user ->vedios)
+// //       title: "Video 2",
+// //       owner: ObjectId("owner_id_2"),
+// //       owners_of_videos: [                             //second pipeline which gives us owner details {  owner -> user }
+// //         {
+// //           username: "user2",
+// //           email: "u2@example.com",
+// //           fullname: "User Two"
+// //         }
+// //       ]
+// //     }
+// //     // and so on...
+// //   ]
+// // }]
+// }
